@@ -4,6 +4,7 @@ import { getEvent, registerForEvent } from '../api.js'
 import { formatDateRange, money } from '../format.js'
 import DynamicField from '../components/DynamicField.jsx'
 import ResultPanel from '../components/ResultPanel.jsx'
+import TicketCart, { cartToItems, emptyCart } from '../components/TicketCart.jsx'
 
 function EventSpec({ event }) {
   const price = money(event.ticket_price, 'SAR')
@@ -66,6 +67,7 @@ export default function DetailPage() {
   // form state
   const [booker, setBooker] = useState({ name: '', email: '', mobile: '' })
   const [seats, setSeats] = useState(1)
+  const [cart, setCart] = useState(emptyCart()) // flexible ticket_selection (032)
   const [attendees, setAttendees] = useState([]) // named extra attendees
   const [answers, setAnswers] = useState({})
   const [fieldErrors, setFieldErrors] = useState({})
@@ -123,6 +125,15 @@ export default function DetailPage() {
       ...(booker.mobile.trim() ? { mobile: booker.mobile } : {}),
     }
     if (schemaFields.length) payload.form_answers = answers
+
+    // Flexible ticketing (032): send the cart only when the visitor picked units.
+    // An empty cart is omitted so the backend keeps its whole-event default
+    // (backward compatible with the 031 flow).
+    if (isPaid) {
+      const items = cartToItems(cart)
+      if (items.length > 0) payload.ticket_selection = { items }
+    }
+
     if (attendees.length > 0) {
       payload.attendees = attendees.map((a) => ({
         name: a.name,
@@ -146,7 +157,7 @@ export default function DetailPage() {
     }
   }
 
-  const resetForm = () => { setResult(null); setFieldErrors({}) }
+  const resetForm = () => { setResult(null); setFieldErrors({}); setCart(emptyCart()) }
 
   if (load === 'loading') return <div className="state"><span className="eyebrow">Loading</span><h3>Fetching event…</h3></div>
   if (load === 'error') return (
@@ -228,6 +239,19 @@ export default function DetailPage() {
                   <input id="seats" className={`input${fieldErrors['attendee_count'] ? ' err' : ''}`} type="number" min="1" value={seats}
                     onChange={(e) => setSeats(e.target.value)} style={{ maxWidth: 120 }} />
                   {fieldErrors['attendee_count'] && <span className="field-err">{fieldErrors['attendee_count']}</span>}
+                </div>
+              )}
+
+              {/* Flexible ticket cart (032) — paid events with a pricing block */}
+              {isPaid && event.pricing && (
+                <div className="field">
+                  <TicketCart
+                    pricing={event.pricing}
+                    seats={attendees.length > 0 ? attendees.length : seats}
+                    cart={cart}
+                    onChange={setCart}
+                    error={fieldErrors['ticket_selection']}
+                  />
                 </div>
               )}
 

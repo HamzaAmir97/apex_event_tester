@@ -364,3 +364,31 @@ code, .mono { font-family: var(--mono); }
   border: 1px solid color-mix(in oklch, var(--info) 25%, transparent);
   border-radius: var(--radius-sm); padding: 10px 12px; line-height: 1.5;
 }
+
+/* ── flexible ticket cart (032) ─────────────────────────────── */
+.cart { display: flex; flex-direction: column; gap: 8px; }
+.cart-group { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.cart-group-label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3); margin-top: 4px;
+}
+.cart-opt {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--paper); cursor: pointer; transition: all 0.15s var(--ease);
+}
+.cart-opt:hover { border-color: var(--line-2); }
+.cart-opt input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+.cart-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.cart-opt.off { opacity: 0.5; cursor: not-allowed; }
+.cart-opt.off input { cursor: not-allowed; }
+.cart-opt-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cart-opt-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.cart-opt-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.cart-opt-price { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.cart-total {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: 6px; padding: 11px 12px; border-top: 1px solid var(--line-2);
+}
+.cart-total-k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.cart-total-v { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); }
