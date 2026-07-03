@@ -386,6 +386,25 @@ code, .mono { font-family: var(--mono); }
 .cart-opt-title { font-size: 14px; font-weight: 600; color: var(--ink); }
 .cart-opt-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
 .cart-opt-price { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+
+/* per-day → sessions hierarchy */
+.cart-day { display: flex; flex-direction: column; gap: 6px; }
+.cart-day + .cart-day { margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.cart-day-head .cart-opt-title { font-weight: 700; }
+.cart-day-label {
+  display: flex; align-items: baseline; gap: 8px; padding: 4px 2px 2px;
+}
+.cart-day-date { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.cart-day-note {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.cart-day-sessions {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-left: 15px; padding-left: 13px; border-left: 2px solid var(--line-2);
+}
+.cart-session { background: transparent; }
+.cart-session .cart-opt-title { font-weight: 500; }
 .cart-total {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-top: 6px; padding: 11px 12px; border-top: 1px solid var(--line-2);

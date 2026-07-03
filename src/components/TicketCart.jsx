@@ -39,8 +39,23 @@ export function cartUnitTotal(cart, pricing) {
 export default function TicketCart({ pricing, seats, cart, onChange, error }) {
   const currency = 'SAR'
   const wholeAvailable = !!pricing?.whole_event?.available
-  const pricedDays = useMemo(() => (pricing?.days || []).filter((d) => d.price != null), [pricing])
-  const pricedSessions = useMemo(() => (pricing?.sessions || []).filter((s) => s.price != null), [pricing])
+
+  // Priced sessions grouped under their day (day_id links a session to its day).
+  const sessionsByDay = useMemo(() => {
+    const map = {}
+    for (const s of pricing?.sessions || []) {
+      if (s.price == null) continue
+      ;(map[s.day_id] ||= []).push(s)
+    }
+    return map
+  }, [pricing])
+
+  // A day is shown when it can be bought as a full-day pass OR it holds priced
+  // sessions (sessions-only day). Days keep the resource's date order.
+  const displayDays = useMemo(
+    () => (pricing?.days || []).filter((d) => d.price != null || (sessionsByDay[d.day_id]?.length > 0)),
+    [pricing, sessionsByDay],
+  )
 
   const selectedFullDays = new Set(cart.days)
 
@@ -97,46 +112,58 @@ export default function TicketCart({ pricing, seats, cart, onChange, error }) {
         </label>
       )}
 
-      {pricedDays.length > 0 && (
+      {displayDays.length > 0 && (
         <div className="cart-group">
-          <div className="cart-group-label">Day passes</div>
-          {pricedDays.map((d) => {
-            const soldOut = !d.available && (d.remaining === 0)
-            const disabled = cart.whole || soldOut
+          <div className="cart-group-label">Per-day &amp; sessions</div>
+          {displayDays.map((d) => {
+            const daySessions = sessionsByDay[d.day_id] || []
+            const dayPriced = d.price != null
+            const daySoldOut = !d.available && d.remaining === 0
+            const dayDisabled = cart.whole || daySoldOut
+            const dayChecked = cart.days.includes(d.day_id)
             return (
-              <label key={d.day_id} className={`cart-opt${cart.days.includes(d.day_id) ? ' on' : ''}${disabled ? ' off' : ''}`}>
-                <input type="checkbox" disabled={disabled} checked={cart.days.includes(d.day_id)} onChange={() => toggleDay(d.day_id)} />
-                <span className="cart-opt-main">
-                  <span className="cart-opt-title">{d.date}</span>
-                  <span className="cart-opt-sub">
-                    {soldOut ? 'sold out' : d.remaining != null ? `${d.remaining} left` : 'available'}
-                  </span>
-                </span>
-                <span className="cart-opt-price">{priceTag(d.price)}</span>
-              </label>
-            )
-          })}
-        </div>
-      )}
+              <div className="cart-day" key={d.day_id}>
+                {dayPriced ? (
+                  <label className={`cart-opt cart-day-head${dayChecked ? ' on' : ''}${dayDisabled ? ' off' : ''}`}>
+                    <input type="checkbox" disabled={dayDisabled} checked={dayChecked} onChange={() => toggleDay(d.day_id)} />
+                    <span className="cart-opt-main">
+                      <span className="cart-opt-title">{d.date}</span>
+                      <span className="cart-opt-sub">
+                        {daySoldOut ? 'sold out' : `full day${d.remaining != null ? ` · ${d.remaining} left` : ''}`}
+                      </span>
+                    </span>
+                    <span className="cart-opt-price">{priceTag(d.price)}</span>
+                  </label>
+                ) : (
+                  <div className="cart-day-label">
+                    <span className="cart-day-date">{d.date}</span>
+                    <span className="cart-day-note">sessions only</span>
+                  </div>
+                )}
 
-      {pricedSessions.length > 0 && (
-        <div className="cart-group">
-          <div className="cart-group-label">Sessions</div>
-          {pricedSessions.map((s) => {
-            const inFullDay = selectedFullDays.has(s.day_id)
-            const soldOut = !s.available
-            const disabled = cart.whole || inFullDay || soldOut
-            return (
-              <label key={s.session_id} className={`cart-opt${cart.sessions.includes(s.session_id) ? ' on' : ''}${disabled ? ' off' : ''}`}>
-                <input type="checkbox" disabled={disabled} checked={cart.sessions.includes(s.session_id)} onChange={() => toggleSession(s.session_id, s.day_id)} />
-                <span className="cart-opt-main">
-                  <span className="cart-opt-title">{s.title || `Session #${s.session_id}`}</span>
-                  <span className="cart-opt-sub">
-                    {inFullDay ? 'included in the selected day' : soldOut ? 'unavailable' : `day ${s.day_id}`}
-                  </span>
-                </span>
-                <span className="cart-opt-price">{priceTag(s.price)}</span>
-              </label>
+                {daySessions.length > 0 && (
+                  <div className="cart-day-sessions">
+                    {daySessions.map((s) => {
+                      const inFullDay = selectedFullDays.has(s.day_id)
+                      const soldOut = !s.available
+                      const disabled = cart.whole || inFullDay || soldOut
+                      const checked = cart.sessions.includes(s.session_id)
+                      return (
+                        <label key={s.session_id} className={`cart-opt cart-session${checked ? ' on' : ''}${disabled ? ' off' : ''}`}>
+                          <input type="checkbox" disabled={disabled} checked={checked} onChange={() => toggleSession(s.session_id, s.day_id)} />
+                          <span className="cart-opt-main">
+                            <span className="cart-opt-title">{s.title || `Session #${s.session_id}`}</span>
+                            <span className="cart-opt-sub">
+                              {inFullDay ? 'included in the full day' : soldOut ? 'unavailable' : 'session'}
+                            </span>
+                          </span>
+                          <span className="cart-opt-price">{priceTag(s.price)}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
