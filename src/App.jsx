@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { listEvents } from './api.js'
+import { listEvents, hasApiKey } from './api.js'
 import { ENVIRONMENTS, getActiveEnvId, getApiBase, selectEnv } from './config.js'
 
 function useBackendHealth() {
@@ -53,6 +53,12 @@ export default function App() {
           </span>
         </div>
       </header>
+
+      {!hasApiKey() && (
+        <div style={{ background: '#fef3cd', color: '#856404', padding: '8px 16px', textAlign: 'center', fontSize: 13, borderBottom: '1px solid #ffc107' }}>
+          API Key not configured — set <code>VITE_EVENT_API_KEY</code> in <code>.env</code> (create from admin Settings &rarr; API Keys)
+        </div>
+      )}
 
       <main className="main">
         <Outlet />

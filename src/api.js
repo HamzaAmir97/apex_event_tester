@@ -7,11 +7,21 @@ import { getApiBase } from './config.js'
 
 const path = () => `${getApiBase()}/api/public/events`
 
+const API_KEY = import.meta.env.VITE_EVENT_API_KEY || ''
+
+export function hasApiKey() {
+  return API_KEY.length > 0
+}
+
+function authHeaders() {
+  return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}
+}
+
 async function request(url, options = {}) {
   let res
   try {
     res = await fetch(url, {
-      headers: { Accept: 'application/json', ...(options.headers || {}) },
+      headers: { Accept: 'application/json', ...authHeaders(), ...(options.headers || {}) },
       ...options,
     })
   } catch (networkError) {
