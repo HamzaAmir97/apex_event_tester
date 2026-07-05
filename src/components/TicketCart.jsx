@@ -72,7 +72,7 @@ export default function TicketCart({ pricing, seats, cart, onChange, error }) {
     const sessions = has
       ? cart.sessions
       : cart.sessions.filter((sid) => {
-          const s = pricedSessions.find((x) => x.session_id === sid)
+          const s = (pricing?.sessions || []).find((x) => x.session_id === sid)
           return !s || s.day_id !== dayId
         })
     onChange({ whole: false, days, sessions })
