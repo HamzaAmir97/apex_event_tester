@@ -17,12 +17,12 @@ function authHeaders() {
   return API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}
 }
 
-async function request(url, options = {}) {
+async function request(url, { headers: extraHeaders, ...rest } = {}) {
   let res
   try {
     res = await fetch(url, {
-      headers: { Accept: 'application/json', ...authHeaders(), ...(options.headers || {}) },
-      ...options,
+      ...rest,
+      headers: { Accept: 'application/json', ...authHeaders(), ...(extraHeaders || {}) },
     })
   } catch (networkError) {
     // network failure or CORS block
