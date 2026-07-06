@@ -105,7 +105,7 @@ export default function TicketCart({ pricing, seats, cart, onChange, error }) {
         <label className={`cart-opt${cart.whole ? ' on' : ''}`}>
           <input type="checkbox" checked={cart.whole} onChange={toggleWhole} />
           <span className="cart-opt-main">
-            <span className="cart-opt-title">Whole event</span>
+            <span className="cart-opt-title">{pricing.whole_event.name || 'Whole event'}</span>
             <span className="cart-opt-sub">access to every day (exclusive)</span>
           </span>
           <span className="cart-opt-price">{priceTag(pricing.whole_event.price)}</span>
