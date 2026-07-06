@@ -21,6 +21,7 @@ function EventSpec({ event }) {
       <div className="spec-row"><span className="k">Pricing</span><span className="v">{event.pricing_mode === 'paid' ? `${price.value} ${price.currency} / ticket` : 'Free'}</span></div>
       {passName && <div className="spec-row"><span className="k">Ticket name</span><span className="v">{passName}</span></div>}
       <div className="spec-row"><span className="k">Booking method</span><span className="v">{event.booking_method || '—'}</span></div>
+      {event.visibility && <div className="spec-row"><span className="k">Visibility</span><span className="v">{event.visibility}</span></div>}
       <div className="spec-row"><span className="k">When</span><span className="v">{formatDateRange(event.first_date, event.last_date)}</span></div>
       {event.location && <div className="spec-row"><span className="k">Where</span><span className="v">{event.location}</span></div>}
       <div className="spec-row">
@@ -215,6 +216,24 @@ export default function DetailPage() {
 
           <EventSpec event={event} />
           <Schedule days={event.days} />
+
+          {event.embed_url && (
+            <div className="embed-preview">
+              <div className="subhead">Embed · <code>embed_url</code></div>
+              <div className="embed-url">
+                <input type="text" readOnly value={event.embed_url} onFocus={(e) => e.target.select()} />
+                <a className="link-btn" href={event.embed_url} target="_blank" rel="noreferrer">open ↗</a>
+              </div>
+              <details>
+                <summary>Preview iframe</summary>
+                <iframe
+                  title="embed preview"
+                  src={event.embed_url}
+                  style={{ width: '100%', height: 520, border: '1px solid var(--line, #ddd)', borderRadius: 10, marginTop: 10 }}
+                />
+              </details>
+            </div>
+          )}
         </div>
 
         {/* Right: registration form */}

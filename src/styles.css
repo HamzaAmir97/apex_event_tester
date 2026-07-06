@@ -266,6 +266,11 @@ code, .mono { font-family: var(--mono); }
 .lang-toggle button { padding: 4px 10px; font-size: 12px; background: var(--paper); color: var(--ink-3);
   border: none; cursor: pointer; }
 .lang-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.embed-preview { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.embed-url { display: flex; gap: 8px; align-items: center; margin: 6px 0 8px; }
+.embed-url input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 12px; padding: 7px 9px;
+  border: 1px solid var(--line-2); border-radius: 8px; background: var(--paper); color: var(--ink-2); }
+.embed-preview summary { cursor: pointer; font-size: 12.5px; color: var(--ink-2); }
 .panel-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
 
 .field { display: flex; flex-direction: column; gap: 6px; }
