@@ -1,9 +1,16 @@
 // Renders one field from the event's registration_form_schema.
-// Field shape: { id, type, label, required, options?, placeholder? }
+// Field shape (034): { id, type, label_en, label_ar?, system, required, options?, placeholder? }
+// `lang` picks which label to show; falls back to label_en, then legacy label, then id.
 
-export default function DynamicField({ field, value, error, onChange }) {
+export function fieldLabel(field, lang = 'en') {
+  const ar = field.label_ar
+  const en = field.label_en || field.label
+  return (lang === 'ar' ? ar : en) || en || field.label || field.id
+}
+
+export default function DynamicField({ field, value, error, onChange, lang = 'en' }) {
   const id = field.id
-  const label = field.label || id
+  const label = fieldLabel(field, lang)
   const type = field.type || 'text'
   const required = !!field.required
   const options = Array.isArray(field.options) ? field.options : null

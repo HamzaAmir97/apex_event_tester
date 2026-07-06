@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getEvent, registerForEvent } from '../api.js'
 import { formatDateRange, money } from '../format.js'
-import DynamicField from '../components/DynamicField.jsx'
+import DynamicField, { fieldLabel } from '../components/DynamicField.jsx'
 import ResultPanel from '../components/ResultPanel.jsx'
 import TicketCart, { cartToItems, emptyCart } from '../components/TicketCart.jsx'
 
@@ -14,9 +14,13 @@ function EventSpec({ event }) {
   const used = !unlimited && limit != null && remaining != null ? Math.max(0, limit - remaining) : null
   const pct = used != null && limit ? Math.min(100, Math.round((used / limit) * 100)) : 0
 
+  const passName = event.pricing_mode === 'paid' ? event.pricing?.whole_event?.name : null
+
   return (
     <div className="spec">
       <div className="spec-row"><span className="k">Pricing</span><span className="v">{event.pricing_mode === 'paid' ? `${price.value} ${price.currency} / ticket` : 'Free'}</span></div>
+      {passName && <div className="spec-row"><span className="k">Ticket name</span><span className="v">{passName}</span></div>}
+      <div className="spec-row"><span className="k">Booking method</span><span className="v">{event.booking_method || '—'}</span></div>
       <div className="spec-row"><span className="k">When</span><span className="v">{formatDateRange(event.first_date, event.last_date)}</span></div>
       {event.location && <div className="spec-row"><span className="k">Where</span><span className="v">{event.location}</span></div>}
       <div className="spec-row">
@@ -73,6 +77,7 @@ export default function DetailPage() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
+  const [lang, setLang] = useState('en') // en | ar — which schema label to show
 
   useEffect(() => {
     let alive = true
@@ -92,6 +97,18 @@ export default function DetailPage() {
     return Array.isArray(f) ? f : []
   }, [event])
 
+  // 034: the schema now always carries the system baseline fields
+  // (full_name/email/mobile → the booker) plus the custom questions
+  // (→ form_answers). Split so we never send system fields as form_answers.
+  const SYSTEM_TO_BOOKER = { full_name: 'name', email: 'email', mobile: 'mobile' }
+  const systemFields = useMemo(() => schemaFields.filter((f) => f.system), [schemaFields])
+  const customFields = useMemo(() => schemaFields.filter((f) => !f.system), [schemaFields])
+  const systemField = (bookerKey) => systemFields.find((f) => SYSTEM_TO_BOOKER[f.id] === bookerKey)
+  const bookerLabel = (bookerKey, fallback) => {
+    const f = systemField(bookerKey)
+    return f ? fieldLabel(f, lang) : fallback
+  }
+
   const setAnswer = (fid, val) => setAnswers((a) => ({ ...a, [fid]: val }))
 
   const addAttendee = () => setAttendees((a) => [...a, { name: '', email: '', mobile: '' }])
@@ -102,11 +119,11 @@ export default function DetailPage() {
     const errs = {}
     if (!booker.name.trim()) errs['name'] = 'Name is required.'
     if (!booker.email.trim()) errs['email'] = 'Email is required.'
-    for (const f of schemaFields) {
+    for (const f of customFields) {
       if (f.required) {
         const v = answers[f.id]
         const empty = v === undefined || v === null || v === '' || v === false
-        if (empty) errs[`form_answers.${f.id}`] = `${f.label || f.id} is required.`
+        if (empty) errs[`form_answers.${f.id}`] = `${fieldLabel(f, lang)} is required.`
       }
     }
     attendees.forEach((a, i) => { if (!a.name.trim()) errs[`attendees.${i}.name`] = 'Name required.' })
@@ -124,7 +141,7 @@ export default function DetailPage() {
       email: booker.email,
       ...(booker.mobile.trim() ? { mobile: booker.mobile } : {}),
     }
-    if (schemaFields.length) payload.form_answers = answers
+    if (customFields.length) payload.form_answers = answers
 
     // Flexible ticketing (032): send the cart only when the visitor picked units.
     // An empty cart is omitted so the backend keeps its whole-event default
@@ -170,6 +187,7 @@ export default function DetailPage() {
   )
 
   const isPaid = event.pricing_mode === 'paid'
+  const contactOnly = event.booking_method === 'contact_only'
 
   return (
     <div>
@@ -204,30 +222,42 @@ export default function DetailPage() {
           <div className="panel-head">
             <h2>Register</h2>
             <p><code>POST /public/events/{event.id}/registrations</code></p>
+            <div className="lang-toggle" role="group" aria-label="Label language">
+              <button type="button" aria-pressed={lang === 'en'} onClick={() => setLang('en')}>EN</button>
+              <button type="button" aria-pressed={lang === 'ar'} onClick={() => setLang('ar')}>ع</button>
+            </div>
           </div>
 
-          {!result ? (
+          {contactOnly ? (
+            <div className="panel-body">
+              <div className="callout">
+                <strong>Contact the organizer.</strong> This event is <code>contact_only</code> — online
+                registration is disabled. The public site would show a “contact us” call to action here
+                instead of a form.
+              </div>
+            </div>
+          ) : !result ? (
             <form className="panel-body" onSubmit={submit} noValidate>
               {!event.booking_open && (
-                <div className="callout">Booking is closed for this event (sold out, past deadline, or contact-only). Submit anyway to see the API’s 4xx response.</div>
+                <div className="callout">Booking is closed for this event (sold out or past deadline). Submit anyway to see the API’s 4xx response.</div>
               )}
 
               <div className="field">
-                <label htmlFor="name">Full name <span className="req">*</span></label>
+                <label htmlFor="name">{bookerLabel('name', 'Full name')} <span className="req">*</span></label>
                 <input id="name" className={`input${fieldErrors['name'] ? ' err' : ''}`} value={booker.name}
                   onChange={(e) => setBooker({ ...booker, name: e.target.value })} placeholder="Ahmed Al-Otaibi" />
                 {fieldErrors['name'] && <span className="field-err">{fieldErrors['name']}</span>}
               </div>
 
               <div className="field">
-                <label htmlFor="email">Email <span className="req">*</span></label>
+                <label htmlFor="email">{bookerLabel('email', 'Email')} <span className="req">*</span></label>
                 <input id="email" type="email" className={`input${fieldErrors['email'] ? ' err' : ''}`} value={booker.email}
                   onChange={(e) => setBooker({ ...booker, email: e.target.value })} placeholder="ahmed@example.com" />
                 {fieldErrors['email'] && <span className="field-err">{fieldErrors['email']}</span>}
               </div>
 
               <div className="field">
-                <label htmlFor="mobile">Mobile <span className="hint">optional</span></label>
+                <label htmlFor="mobile">{bookerLabel('mobile', 'Mobile')} <span className="hint">optional</span></label>
                 <input id="mobile" className="input" value={booker.mobile}
                   onChange={(e) => setBooker({ ...booker, mobile: e.target.value })} placeholder="+9665…" />
               </div>
@@ -268,12 +298,15 @@ export default function DetailPage() {
                 <button type="button" className="link-btn" onClick={addAttendee}>+ add named attendee</button>
               </div>
 
-              {/* Dynamic schema fields */}
-              {schemaFields.length > 0 && (
+              {/* Dynamic schema fields — the custom questions (system baseline
+                  fields drive the booker inputs above). */}
+              {customFields.length > 0 && (
                 <>
-                  <div className="subhead">Registration form · registration_form_schema</div>
-                  {schemaFields.map((f) => (
-                    <DynamicField key={f.id} field={f} value={answers[f.id]}
+                  <div className="subhead">
+                    Registration form · {event.registration_form_schema?.type || 'custom'} · registration_form_schema
+                  </div>
+                  {customFields.map((f) => (
+                    <DynamicField key={f.id} field={f} value={answers[f.id]} lang={lang}
                       error={fieldErrors[`form_answers.${f.id}`]} onChange={(v) => setAnswer(f.id, v)} />
                   ))}
                 </>
