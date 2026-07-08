@@ -6,7 +6,11 @@ import DynamicField, { fieldLabel } from '../components/DynamicField.jsx'
 import ResultPanel from '../components/ResultPanel.jsx'
 import TicketCart, { cartToItems, emptyCart } from '../components/TicketCart.jsx'
 
-function EventSpec({ event }) {
+// Feature 037: prefer the Arabic sibling when the ع toggle is on and it exists,
+// otherwise fall back to the English value (never render an empty label).
+const pickLang = (lang, en, ar) => (lang === 'ar' && ar ? ar : en)
+
+function EventSpec({ event, lang }) {
   const price = money(event.ticket_price, 'SAR')
   const unlimited = event.is_unlimited_capacity || event.capacity_limit === null
   const limit = event.capacity_limit
@@ -14,7 +18,8 @@ function EventSpec({ event }) {
   const used = !unlimited && limit != null && remaining != null ? Math.max(0, limit - remaining) : null
   const pct = used != null && limit ? Math.min(100, Math.round((used / limit) * 100)) : 0
 
-  const passName = event.pricing_mode === 'paid' ? event.pricing?.whole_event?.name : null
+  const whole = event.pricing?.whole_event
+  const passName = event.pricing_mode === 'paid' ? pickLang(lang, whole?.name, whole?.name_ar) : null
 
   return (
     <div className="spec">
@@ -41,7 +46,7 @@ function EventSpec({ event }) {
   )
 }
 
-function Schedule({ days }) {
+function Schedule({ days, lang }) {
   if (!Array.isArray(days) || days.length === 0) return null
   return (
     <div className="days">
@@ -53,7 +58,7 @@ function Schedule({ days }) {
           {Array.isArray(d.sessions) && d.sessions.length > 0 && (
             <div className="day-sessions">
               {d.sessions.map((s, j) => (
-                <div className="day-session" key={j}><span className="t">{s.start_time}–{s.end_time}</span>{s.title}</div>
+                <div className="day-session" key={j}><span className="t">{s.start_time}–{s.end_time}</span>{pickLang(lang, s.title, s.title_ar)}</div>
               ))}
             </div>
           )}
@@ -207,15 +212,19 @@ export default function DetailPage() {
             <span className="badge plain">#{event.id}</span>
           </div>
 
-          <h1>{event.title}</h1>
+          <h1 dir={lang === 'ar' ? 'rtl' : 'ltr'}>{pickLang(lang, event.title, event.title_ar)}</h1>
 
           {event.cover_image_url && (
             <div className="event-cover"><img src={event.cover_image_url} alt="" /></div>
           )}
-          {event.description && <p className="event-desc" style={{ marginTop: 14 }}>{event.description}</p>}
+          {(event.description || event.description_ar) && (
+            <p className="event-desc" style={{ marginTop: 14 }} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+              {pickLang(lang, event.description, event.description_ar)}
+            </p>
+          )}
 
-          <EventSpec event={event} />
-          <Schedule days={event.days} />
+          <EventSpec event={event} lang={lang} />
+          <Schedule days={event.days} lang={lang} />
 
           {event.embed_url && (
             <div className="embed-preview">
@@ -300,6 +309,7 @@ export default function DetailPage() {
                     cart={cart}
                     onChange={setCart}
                     error={fieldErrors['ticket_selection']}
+                    lang={lang}
                   />
                 </div>
               )}

@@ -36,9 +36,11 @@ export function cartUnitTotal(cart, pricing) {
   return total
 }
 
-export default function TicketCart({ pricing, seats, cart, onChange, error }) {
+export default function TicketCart({ pricing, seats, cart, onChange, error, lang }) {
   const currency = 'SAR'
   const wholeAvailable = !!pricing?.whole_event?.available
+  // Feature 037: show the Arabic ticket/session name under the ع toggle, else English.
+  const pick = (en, ar) => (lang === 'ar' && ar ? ar : en)
 
   // Priced sessions grouped under their day (day_id links a session to its day).
   const sessionsByDay = useMemo(() => {
@@ -105,7 +107,7 @@ export default function TicketCart({ pricing, seats, cart, onChange, error }) {
         <label className={`cart-opt${cart.whole ? ' on' : ''}`}>
           <input type="checkbox" checked={cart.whole} onChange={toggleWhole} />
           <span className="cart-opt-main">
-            <span className="cart-opt-title">{pricing.whole_event.name || 'Whole event'}</span>
+            <span className="cart-opt-title">{pick(pricing.whole_event.name, pricing.whole_event.name_ar) || 'Whole event'}</span>
             <span className="cart-opt-sub">access to every day (exclusive)</span>
           </span>
           <span className="cart-opt-price">{priceTag(pricing.whole_event.price)}</span>
@@ -152,7 +154,7 @@ export default function TicketCart({ pricing, seats, cart, onChange, error }) {
                         <label key={s.session_id} className={`cart-opt cart-session${checked ? ' on' : ''}${disabled ? ' off' : ''}`}>
                           <input type="checkbox" disabled={disabled} checked={checked} onChange={() => toggleSession(s.session_id, s.day_id)} />
                           <span className="cart-opt-main">
-                            <span className="cart-opt-title">{s.title || `Session #${s.session_id}`}</span>
+                            <span className="cart-opt-title">{pick(s.title, s.title_ar) || `Session #${s.session_id}`}</span>
                             <span className="cart-opt-sub">
                               {inFullDay ? 'included in the full day' : soldOut ? 'unavailable' : 'session'}
                             </span>
